@@ -38,6 +38,10 @@ class MainViewController: UICollectionViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
+        
+        // Setting movement gesture recognizer to true in ViewDidLoad
+        installsStandardGestureForInteractiveMovement = true
+        
 		// Set up a 3-column Collection View
 		let width = view.frame.size.width / 3
 		let layout = collectionView?.collectionViewLayout as! UICollectionViewFlowLayout
@@ -86,8 +90,20 @@ class MainViewController: UICollectionViewController {
 	
 	@IBAction func addItem() {
 		let index = dataSource.indexPathForNewRandomPark()
-		collectionView?.insertItems(at: [index])
-	}
+        
+        // New flow animation
+        let layout = collectionView?.collectionViewLayout as! FlowLayout
+        layout.addedItem = index
+        
+//        collectionView?.insertItems(at: [index])
+        // Springy Method
+        UIView.animate(withDuration: 1.0, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0.0, options: [], animations: {
+        self.collectionView?.insertItems(at: [index]) // Completion closure parameter
+        }) { (finished) in
+            layout.addedItem = nil
+        }
+        
+    }
 	
 	@objc func refresh() {
 		addItem()
@@ -96,6 +112,11 @@ class MainViewController: UICollectionViewController {
 	
 	@IBAction func deleteSelected() {
 		if let selected = collectionView?.indexPathsForSelectedItems {
+            
+            // Animation for delete
+            let layout = collectionView?.collectionViewLayout as! FlowLayout // pass indexes to flow layout.
+            layout.deletedItems = selected
+            
 			dataSource.deleteItemsAtIndexPaths(selected)
 			collectionView?.deleteItems(at: selected)
 			navigationController?.isToolbarHidden = true
@@ -105,9 +126,21 @@ class MainViewController: UICollectionViewController {
 
 extension MainViewController {
     
+    // Override Move item Extension to move cells around
+    override func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        dataSource.moveParkAtIndexPath(sourceIndexPath, toIndexPath: destinationIndexPath)
+    }
+    
     override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
         let view = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "SectionHeader", for: indexPath) as! SectionHeader
-        view.title = dataSource.titleForSectionAtIndexPath(indexPath)
+//        view.title = dataSource.titleForSectionAtIndexPath(indexPath)
+        
+        // Replace with following for new Section Header Class
+        let section = Section()
+        section.title = dataSource.titleForSectionAtIndexPath(indexPath)
+        section.count = dataSource.numberOfParksInSection(indexPath.section)
+        view.section = section
+        
         return view
     }
     
